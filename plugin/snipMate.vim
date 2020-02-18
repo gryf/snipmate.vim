@@ -18,22 +18,16 @@ if !exists('snips_author') | let snips_author = 'Me' | endif
 au BufRead,BufNewFile *.snippets\= set ft=snippet
 au FileType snippet setl noet fdm=indent
 
-let s:snippets = {} | let s:multi_snips = {}
+let s:snippets = {}
 
 if !exists('snippets_dir')
 	let snippets_dir = substitute(globpath(&rtp, 'snippets/'), "\n", ',', 'g')
 endif
 
 fun! MakeSnip(scope, trigger, content, ...)
-	let multisnip = a:0 && a:1 != ''
-	let var = multisnip ? 's:multi_snips' : 's:snippets'
-	if !has_key({var}, a:scope) | let {var}[a:scope] = {} | endif
-	if !has_key({var}[a:scope], a:trigger)
-		let {var}[a:scope][a:trigger] = multisnip ? [[a:1, a:content]] : a:content
-	elseif multisnip | let {var}[a:scope][a:trigger] += [[a:1, a:content]]
-	else
-		echom 'Warning in snipMate.vim: Snippet '.a:trigger.' is already defined.'
-				\ .' See :h multi_snip for help on snippets with multiple matches.'
+	if !has_key(s:snippets, a:scope) | let s:snippets[a:scope] = {} | endif
+	if !has_key(s:snippets[a:scope], a:trigger)
+		let s:snippets[a:scope][a:trigger] = a:content
 	endif
 endf
 
@@ -42,7 +36,6 @@ fun! ExtractSnips(dir, ft)
 		if isdirectory(path)
 			let pathname = fnamemodify(path, ':t')
 			for snipFile in split(globpath(path, '*.snippet'), "\n")
-				call s:ProcessFile(snipFile, a:ft, pathname)
 			endfor
 		elseif fnamemodify(path, ':e') == 'snippet'
 			call s:ProcessFile(path, a:ft)
@@ -94,7 +87,7 @@ endf
 " Reset snippets for filetype.
 fun! ResetSnippets(ft)
 	let ft = a:ft == '' ? '_' : a:ft
-	for dict in [s:snippets, s:multi_snips, g:did_ft]
+	for dict in [s:snippets, g:did_ft]
 		if has_key(dict, ft)
 			unlet dict[ft]
 		endif
@@ -103,7 +96,7 @@ endf
 
 " Reset snippets for all filetypes.
 fun! ResetAllSnippets()
-	let s:snippets = {} | let s:multi_snips = {} | let g:did_ft = {}
+	let s:snippets = {} | let g:did_ft = {}
 endf
 
 " Reload snippets for filetype.
@@ -208,9 +201,6 @@ fun s:GetSnippet(word, scope)
 	while snippet == ''
 		if exists('s:snippets["'.a:scope.'"]["'.escape(word, '\"').'"]')
 			let snippet = s:snippets[a:scope][word]
-		elseif exists('s:multi_snips["'.a:scope.'"]["'.escape(word, '\"').'"]')
-			let snippet = s:ChooseSnippet(a:scope, word)
-			if snippet == '' | break | endif
 		else
 			if match(word, '\W') == -1 | break | endif
 			let word = substitute(word, '.\{-}\W', '', '')
@@ -220,18 +210,6 @@ fun s:GetSnippet(word, scope)
 		let [word, snippet] = s:GetSnippet('.', a:scope)
 	endif
 	return [word, snippet]
-endf
-
-fun s:ChooseSnippet(scope, trigger)
-	let snippet = []
-	let i = 1
-	for snip in s:multi_snips[a:scope][a:trigger]
-		let snippet += [i.'. '.snip[0]]
-		let i += 1
-	endfor
-	if i == 2 | return s:multi_snips[a:scope][a:trigger][0][1] | endif
-	let num = inputlist(snippet) - 1
-	return num == -1 ? '' : s:multi_snips[a:scope][a:trigger][num][1]
 endf
 
 fun! ShowAvailableSnips()
@@ -246,9 +224,6 @@ fun! ShowAvailableSnips()
 	let matches = []
 	for scope in [bufnr('%')] + split(&ft, '\.') + ['_']
 		let triggers = has_key(s:snippets, scope) ? keys(s:snippets[scope]) : []
-		if has_key(s:multi_snips, scope)
-			let triggers += keys(s:multi_snips[scope])
-		endif
 		for trigger in triggers
 			for word in words
 				if word == ''

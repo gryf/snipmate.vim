@@ -156,22 +156,9 @@ empty string if it hasn't. The second returns the filename if it's been named,
 and "name" if it hasn't. The third returns the filename followed by "_foo" if
 it has been named, and an empty string if it hasn't.
 
-                                                                   *multi_snip*
-To specify that a snippet can have multiple matches in a *.snippets file, use
-this syntax: >
-
- snippet trigger A description of snippet #1
- 	expand this text
- snippet trigger A description of snippet #2
- 	expand THIS text!
-
-In this example, when "trigger<tab>" is typed, a numbered menu containing all
-of the descriptions of the "trigger" will be shown; when the user presses the
-corresponding number, that snippet will then be expanded.
-
-To create a snippet with multiple matches using *.snippet files,
-simply place all the snippets in a subdirectory with the trigger name:
-'snippets/<filetype>/<trigger>/<name>.snippet'.
+Duplicate snippets will not be boundled together, the precedence will have 
+those defined in the first location in the runtimepath (which typically is 
+~/.vim/snippets)
 
 ==============================================================================
 USAGE                                                         *snipMate-usage*
@@ -196,8 +183,7 @@ ExtractSnips({directory}, {filetype})             *ExtractSnips()* *.snippet*
 ExtractSnips() extracts *.snippet files from the specified directory and
 defines them as snippets for the given filetype. The directory tree should
 look like this: 'snippets/<filetype>/<trigger>.snippet'. If the snippet has
-multiple matches, it should look like this:
-'snippets/<filetype>/<trigger>/<name>.snippet' (see |multi_snip|).
+multiple matches, it will be ignored.
 
 ResetAllSnippets()                                       *ResetAllSnippets()*
 ResetAllSnippets() removes all snippets from memory. This is useful to put at
